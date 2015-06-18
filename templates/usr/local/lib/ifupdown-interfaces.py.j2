@@ -1,0 +1,29 @@
+#!/usr/bin/python
+import sys
+import os
+from debinterface.interfaces import Interfaces
+
+def remove_old():
+    try:
+        path = '/etc/network/interfaces.config.d/'
+        interface_init_file="{{ ifupdown_reconfigure_init_file }}"
+        addr = Interfaces( interfaces_path = interface_init_file, backup_path = '/dev/null')
+        addr.removeAdapterByName('lo')
+        for x in os.listdir(path):
+            if os.path.isdir(path+x): continue
+            if path+x in interface_init_file: continue
+            tmp_addr = Interfaces( interfaces_path = path + x)
+            for y in tmp_addr.adapters:
+                addr.removeAdapterByName(y.export()['name'])
+        addr.writeInterfaces()
+    except IOError:
+       sys.exit
+
+if __name__ == "__main__":
+    if len (sys.argv) == 2:
+        if "remove_old" in sys.argv[1]:
+            remove_old()
+    else:
+        print("usage {}".format(sys.argv[0]))
+        print("     remove_old")
+

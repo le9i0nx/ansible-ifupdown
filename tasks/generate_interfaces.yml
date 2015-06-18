@@ -34,18 +34,22 @@
   with_flattened:
     - ifupdown_packages
     - [ 'bsdutils', 'rsync' ]
+    - [ 'python' ]
     - [ '{{ "bridge-utils" if "bridge" in ifupdown_capabilities else [] }}' ]
     - [ '{{ "vlan" if "vlan" in ifupdown_capabilities else [] }}' ]
     - [ '{{ "ifenslave" if ("bond" in ifupdown_capabilities and ansible_distribution_release != "wheezy") else [] }}' ]
     - [ '{{ "ifenslave-2.6" if ("bond" in ifupdown_capabilities and ansible_distribution_release == "wheezy") else [] }}' ]
 
-- name: Install network reconfiguration script
+- name: Install network script
   template:
-    src: 'usr/local/lib/ifupdown-reconfigure-interfaces.j2'
-    dest: '{{ ifupdown_reconfigure_script }}'
-    owner: 'root'
-    group: 'root'
-    mode: '0755'
+    src: '{{ item.src }}'
+    dest: '{{ item.dest }}'
+    owner: '{{ item.owner | default("root") }}'
+    group: '{{ item.group | default("root") }}'
+    mode: '{{ item.mode | default("0555") }}'
+  with_items:
+    - { src: 'usr/local/lib/ifupdown-reconfigure-interfaces.j2', dest: '{{ ifupdown_reconfigure_script }}' }
+    - { src: 'usr/local/lib/ifupdown-interfaces.py.j2', dest: '{{ ifupdown_old_interfaces_script }}'}
 
 - name: Delete interface configuration if requested
   file:
@@ -97,6 +101,25 @@
   when: (((ifupdown_register_interfaces_removator is defined and ifupdown_register_interfaces_removator.changed) or
           (ifupdown_register_interfaces_generator is defined and ifupdown_register_interfaces_generator.changed)) and
          ((ifupdown_reconfigure is defined and ifupdown_reconfigure) and (ifupdown_apply_config is defined and not ifupdown_apply_config | bool)))
+
+- name: copy file lib debinterface
+  copy:
+    src: '{{item.src}}'
+    dest: '{{item.dest}}'
+    owner: '{{ item.owner | default("root") }}'
+    group: '{{ item.group | default("root") }}'
+    mode: '{{ item.mode | default("0444") }}'
+  with_items:
+    - { src: 'usr/local/lib/python2.7/dist-packages/debinterface/' , dest: '/usr/local/lib/python2.7/dist-packages/debinterface/' }
+  when: (((ifupdown_register_interfaces_removator is defined and ifupdown_register_interfaces_removator.changed) or
+          (ifupdown_register_interfaces_generator is defined and ifupdown_register_interfaces_generator.changed)) and
+         ((ifupdown_reconfigure is defined and ifupdown_reconfigure) and (ifupdown_apply_config is defined and ifupdown_apply_config | bool)))
+
+- name: Remove redundant configuration from original interfaces
+  command: '{{ "python " + ifupdown_old_interfaces_script + " remove_old" }}'
+  when: (((ifupdown_register_interfaces_removator is defined and ifupdown_register_interfaces_removator.changed) or
+          (ifupdown_register_interfaces_generator is defined and ifupdown_register_interfaces_generator.changed)) and
+         ((ifupdown_reconfigure is defined and ifupdown_reconfigure) and (ifupdown_apply_config is defined and ifupdown_apply_config | bool)))
 
 - name: Reconfigure network interfaces
   command: '{{ ifupdown_reconfigure_script + " " + ifupdown_register_tempdir.stdout + "/ifupdown-changed-interfaces" }}'

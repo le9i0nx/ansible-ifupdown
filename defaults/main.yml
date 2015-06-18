@@ -58,14 +58,25 @@ ifupdown_ignore_networkmanager: False
 ifupdown_reconfigure: True
 
 
+# .. envvar:: ifupdown_path_script
+#
+# The path where the script will be saved.
+ifupdown_path_script:   '{{ (ansible_local.root.lib
+                            if (ansible_local|d() and ansible_local.root|d()
+                                and ansible_local.root.lib|d())
+                            else "/usr/local/lib") }}'
+
+
 # .. envvar:: ifupdown_reconfigure_script
 #
 # Path where reconfiguration script is stored.
-ifupdown_reconfigure_script: '{{ (ansible_local.root.lib
-                                 if (ansible_local|d() and ansible_local.root|d()
-                                     and ansible_local.root.lib|d())
-                                 else "/usr/local/lib") +
-                                 "/ifupdown-reconfigure-interfaces" }}'
+ifupdown_reconfigure_script: '{{ ifupdown_path_script + "/ifupdown-reconfigure-interfaces" }}'
+
+
+# .. envvar:: ifupdown_old_interfaces_script
+#
+# The path to the script produces a smooth transition management ansible.
+ifupdown_old_interfaces_script: '{{ ifupdown_path_script + "/ifupdown-interfaces.py" }}'
 
 
 # .. envvar:: ifupdown_reconfigure_init_file
@@ -73,7 +84,7 @@ ifupdown_reconfigure_script: '{{ (ansible_local.root.lib
 # Name of the file that contains an initial state of the ifupdown configuration
 # and indicates that all network interfaces should be stopped before
 # configuration.
-ifupdown_reconfigure_init_file: '/etc/network/interfaces.d/old-interfaces'
+ifupdown_reconfigure_init_file: '/etc/network/interfaces.config.d/old-interfaces'
 
 
 # .. envvar:: ifupdown_apply_config
