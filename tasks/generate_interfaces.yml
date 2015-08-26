@@ -38,6 +38,7 @@
     - [ '{{ "vlan" if "vlan" in ifupdown_capabilities else [] }}' ]
     - [ '{{ "ifenslave" if ("bond" in ifupdown_capabilities and ansible_distribution_release != "wheezy") else [] }}' ]
     - [ '{{ "ifenslave-2.6" if ("bond" in ifupdown_capabilities and ansible_distribution_release == "wheezy") else [] }}' ]
+  become: True
 
 - name: Install network reconfiguration script
   template:
@@ -46,6 +47,7 @@
     owner: 'root'
     group: 'root'
     mode: '0755'
+  become: True
 
 - name: Delete interface configuration if requested
   file:
@@ -55,6 +57,7 @@
   register: ifupdown_register_interfaces_removator
   when: ((item.iface is defined and item.iface) and
          (item.delete is defined and item.delete))
+  become: True
 
 - name: Generate interface configuration
   template:
@@ -67,6 +70,7 @@
   register: ifupdown_register_interfaces_generator
   when: ((item.iface is defined and item.iface) and
          (item.delete is undefined or not item.delete))
+  become: True
 
 - name: Create random temporary directory for ifupdown data
   command: mktemp -d
@@ -85,6 +89,7 @@
   when: (((ifupdown_register_interfaces_removator is defined and ifupdown_register_interfaces_removator.changed) or
           (ifupdown_register_interfaces_generator is defined and ifupdown_register_interfaces_generator.changed)) and
          (ifupdown_reconfigure is defined and ifupdown_reconfigure))
+  become: True
 
 - name: Generate config script in a known location
   template:
@@ -97,10 +102,12 @@
   when: (((ifupdown_register_interfaces_removator is defined and ifupdown_register_interfaces_removator.changed) or
           (ifupdown_register_interfaces_generator is defined and ifupdown_register_interfaces_generator.changed)) and
          ((ifupdown_reconfigure is defined and ifupdown_reconfigure) and (ifupdown_apply_config is defined and not ifupdown_apply_config | bool)))
+  become: True
 
 - name: Reconfigure network interfaces
   command: '{{ ifupdown_reconfigure_script + " " + ifupdown_register_tempdir.stdout + "/ifupdown-changed-interfaces" }}'
   when: (((ifupdown_register_interfaces_removator is defined and ifupdown_register_interfaces_removator.changed) or
           (ifupdown_register_interfaces_generator is defined and ifupdown_register_interfaces_generator.changed)) and
          ((ifupdown_reconfigure is defined and ifupdown_reconfigure) and (ifupdown_apply_config is defined and ifupdown_apply_config | bool)))
+  become: True
 

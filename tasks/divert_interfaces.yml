@@ -4,10 +4,12 @@
   command: dpkg-divert --quiet --local --divert /etc/network/interfaces.dpkg-divert --rename /etc/network/interfaces
            creates=/etc/network/interfaces.dpkg-divert
   register: ifupdown_register_divert
+  become: True
 
 - name: Provide original interfaces temporarily
   command: cp /etc/network/interfaces.dpkg-divert {{ ifupdown_reconfigure_init_file }}
   when: ifupdown_register_divert is defined and ifupdown_register_divert.changed
+  become: True
 
 - name: Remove redundant configuration from original interfaces
   lineinfile:
@@ -19,6 +21,7 @@
     - '^auto lo'
     - '^iface lo inet loopback'
   when: ifupdown_register_divert is defined and ifupdown_register_divert.changed
+  become: True
 
 - name: Create /etc/network/interfaces
   template:
@@ -27,4 +30,5 @@
     owner: 'root'
     group: 'root'
     mode: '0644'
+  become: True
 

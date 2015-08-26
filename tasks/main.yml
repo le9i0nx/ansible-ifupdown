@@ -23,6 +23,7 @@
     - { path: '/etc/network/interfaces.d'}
     - { path: '/etc/network/interfaces.config.d'}
   when: ifupdown|bool and ifupdown_static_config != 'static'
+  become: True
 
 - include: divert_interfaces.yml
   when: ifupdown|bool and ifupdown_static_config != 'static'
